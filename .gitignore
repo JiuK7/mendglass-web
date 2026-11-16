@@ -154,3 +154,6 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /blob-report/
+
+# Local tool caches that are not part of the repository.
+/.impeccable/
