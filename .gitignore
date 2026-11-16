@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# mendglass-web
+.DS_Store
+next-env.d.ts
+/playwright-report/
+/test-results/
+/blob-report/
