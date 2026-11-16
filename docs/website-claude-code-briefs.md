@@ -5,9 +5,9 @@ Companion to `claude/website-roadmap-v2.md`. Decisions D1 to D3 (16 Nov) are bui
 
 ## How to use this document
 
-1. Save this file in the repository as `docs/briefs.md` and the standing rules below as `CLAUDE.md`.
+1. Save this file in the repository as `docs/website-claude-code-briefs.md` and the standing rules below as `CLAUDE.md`.
 2. Copy the three reference documents into `docs/reference/` (read-only): Production Brief v1.1, Engineering Definition v1, Brand System v1. Do not copy the roadmap, the LOG or anything naming prospects: the repository is public.
-3. For each session, tell Claude Code: "Read CLAUDE.md, then do Brief N from docs/briefs.md and nothing else. Open a pull request."
+3. For each session, tell Claude Code: "Read CLAUDE.md, then do Brief N from docs/website-claude-code-briefs.md and nothing else. Open a pull request."
 4. Bring the pull request to the Website Build chat for review against the brief's "Done when" list.
 5. Before merging, answer the brief's "Explain it" questions without notes.
 
@@ -28,7 +28,7 @@ restaurant websites. Also the owner's software-engineering portfolio piece.
 2. docs/reference/03 Brand System v1: identity, palette, type.
 3. docs/reference/02 Engineering Definition v1: stack, boundaries, tests.
 4. docs/decisions/: where this build departs from the above (see ADR 004, hosting).
-5. docs/briefs.md: the current step. Do one brief per session, nothing more.
+5. docs/website-claude-code-briefs.md: the current step. Do one brief per session, nothing more.
 
 ## Hard rules
 - Copy is locked. Use the approved strings from reference/01 word for word.

@@ -22,7 +22,6 @@ restaurant websites. Also the owner's software-engineering portfolio piece.
 - No secrets in the repo. No personal data in logs.
 - Non-goals (reference/02 section 23): no CMS, database, auth, global state
   library, Storybook, monorepo, WebGL, generic section abstractions.
-- Add a dependency only if the brief names it or you justify it in the PR.
 
 ## Stack
 Next.js 16 App Router, React (version required by Next), TypeScript strict,
