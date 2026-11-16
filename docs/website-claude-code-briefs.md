@@ -108,6 +108,7 @@ config, Prettier, pnpm, Node 24. Hosted on Cloudflare Workers via
 - Compressed bundle size from the deploy output, against the 3 MiB free limit.
 - CPU time for `GET /` and for the stub `POST`, against the 10 ms free limit. Say how it was measured.
 - Whether `/` is served as a static asset or runs the Worker.
+- Whether the adapter supports `cacheComponents` and `partialPrefetching`, which the scaffold enabled by default. If it does not, turn them off and say so.
 
 **Done when**
 - A pull request shows green checks; a deliberately failing lint commit blocks merge (show once, revert).
