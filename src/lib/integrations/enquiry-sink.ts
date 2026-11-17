@@ -1,5 +1,6 @@
 import type { ServerEnv } from "@/lib/env";
 import type { Enquiry } from "@/lib/validation/enquiry";
+import { createEmailSink } from "./email-sink";
 import { testSink } from "./test-sink";
 
 // The boundary between the website and wherever enquiries go
@@ -33,10 +34,14 @@ export function sinkFor(env: ServerEnv): EnquirySink {
     case "test":
       return testSink;
     case "email":
+      return createEmailSink({
+        apiKey: env.RESEND_API_KEY,
+        from: env.ENQUIRY_EMAIL_FROM,
+        to: env.ENQUIRY_EMAIL_TO,
+      });
     case "n8n":
-      // Built in Brief 6 (email) and Brief 22 (n8n). Until then, choosing one
-      // fails every delivery, so the visitor is asked to try again and
-      // nothing is silently lost.
-      throw new Error(`The ${env.ENQUIRY_SINK} enquiry sink is not built yet.`);
+      // Built in Brief 22. Until then, choosing it fails every delivery, so
+      // the visitor is asked to try again and nothing is silently lost.
+      throw new Error("The n8n enquiry sink is not built yet.");
   }
 }

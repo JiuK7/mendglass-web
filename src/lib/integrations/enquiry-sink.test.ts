@@ -28,17 +28,35 @@ describe("sinkFor", () => {
     );
   });
 
-  it("throws for email until Brief 6 builds it", () => {
+  it("returns an email sink built from the email variables for ENQUIRY_SINK=email", async () => {
     const env = parseServerEnv(
       {
         ENQUIRY_SINK: "email",
-        RESEND_API_KEY: "key",
-        ENQUIRY_EMAIL_FROM: "from@example.com",
+        RESEND_API_KEY: "re_test_key",
+        ENQUIRY_EMAIL_FROM: "Website <from@example.com>",
         ENQUIRY_EMAIL_TO: "to@example.com",
       },
       "test",
     );
-    expect(() => sinkFor(env)).toThrow("not built yet");
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response("{}", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await sinkFor(env).deliver(enquiry, meta, new AbortController().signal);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const init = fetchMock.mock.calls[0]![1]!;
+    expect(new Headers(init.headers).get("authorization")).toBe(
+      "Bearer re_test_key",
+    );
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      from: "Website <from@example.com>",
+      to: "to@example.com",
+    });
   });
 
   it("throws for n8n until Brief 22 builds it", () => {
