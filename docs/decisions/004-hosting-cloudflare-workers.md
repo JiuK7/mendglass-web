@@ -1,8 +1,8 @@
 # 004: Hosting on Cloudflare Workers
 
-Status: **proposed, provisional go**, 17 November 2026. Final once the site is
-deployed to `workers.dev` and CPU time is measured there (see "Still to
-measure").
+Status: **proposed, verdict open**, 17 November 2026. Deployed and measured;
+CPU time is close to the free limit, so the verdict is the owner's (see
+"Verdict").
 
 ## Context
 
@@ -47,7 +47,8 @@ Following the OpenNext "Get started" guide for existing apps
   Those file names contain a content hash, so they never go stale.
 - `.dev.vars`: `NEXTJS_ENV=development`, gitignored.
 - Scripts: `pnpm preview` (build and run locally in the Workers runtime) and
-  `pnpm deploy` (build and deploy).
+  `pnpm run deploy` (build and deploy). The `run` is needed: `pnpm deploy` on
+  its own is a different, built-in pnpm command.
 
 Left out on purpose:
 
@@ -88,8 +89,8 @@ endpoint.
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------ |
 | Bundle size, compressed (gzip)        | **987 KiB** (0.96 MiB)                                                                                                                    | 3 MiB (free)             | Yes, about a third |
 | Bundle size, uncompressed             | 4,690 KiB (4.6 MiB)                                                                                                                       | 64 MiB (see note)        | Yes                |
-| CPU time, `GET /`                     | **Not measured yet**                                                                                                                      | 10 ms per request (free) | Pending deploy     |
-| CPU time, `POST /api/enquiry`         | **Not measured yet**                                                                                                                      | 10 ms per request (free) | Pending deploy     |
+| CPU time, `GET /`                     | **Median 6 ms**; 90% of requests 11 ms or less; 7 of 49 over 10 ms (14%); highest 83 ms; none cut off                                     | 10 ms per request (free) | Borderline         |
+| CPU time, `POST /api/enquiry`         | **Median 6 ms**; 90% of requests 10 ms or less; 5 of 50 over 10 ms (10%); highest 83 ms; none cut off                                     | 10 ms per request (free) | Borderline         |
 | `/` served as static asset or Worker? | **Runs the Worker**, which reads the prerendered HTML from static assets                                                                  | n/a                      | n/a                |
 | `cacheComponents`                     | **Works**: build reports "Cache Components enabled"; `/` returns `x-nextjs-cache: HIT` and `x-nextjs-prerender: 1` in the Workers runtime | n/a                      | Kept on            |
 | `partialPrefetching`                  | **Works**: build reports "Partial Prefetching enabled"; the page renders and hydrates in the Workers runtime                              | n/a                      | Kept on            |
@@ -114,12 +115,25 @@ How each was measured:
   served `/` with status 200, the expected `h1`, and the headers above. The
   stub endpoint returned 200 for a JSON object and 400 for a body that is not
   JSON.
-- **CPU time** can only be read from a deployed Worker. The local runtime
-  reports wall time (113 ms for the first `GET /`, then 5 ms; 28 ms then 5 ms
-  for the `POST`), which includes waiting and start-up and is not CPU time.
-  After deploy: send ten requests to each, then read CPU time per request in
-  the Cloudflare dashboard (Workers & Pages, mendglass-web, Observability).
-  Workers Logs is switched on in `wrangler.jsonc` for this.
+- **CPU time** was read from the deployed Worker at
+  `https://mendglass-web.mendglass-web.workers.dev` (version
+  `8ce0df73-6b76-49fc-9ef2-240106977ff4`). `wrangler tail --format json`
+  streams one record per request from Cloudflare, including its `cpuTime` in
+  milliseconds and its outcome. Two runs from one machine, a request every
+  fraction of a second, alternating the two routes: 10 of each, then 40 of
+  each (one `GET` record from the second run did not arrive). Every request
+  had outcome `ok`; none was `exceededCpu`.
+  - Run 1, `GET /`: 14, 6, 8, 9, 5, 5, 8, 6, 54, 9.
+  - Run 1, `POST`: 7, 74, 5, 4, 8, 4, 9, 6, 4, 8.
+  - Run 2, `GET /` (sorted): 3, 3, 3, 4, 4, 4, 5 (×10), 6 (×7), 7 (×6), 9,
+    9, 10, 10, 10, 11, 12, 13, 17, 83.
+  - Run 2, `POST` (sorted): 3, 3, 4 (×5), 5 (×5), 6 (×11), 7 (×5), 8, 8, 8,
+    9, 9, 10, 10, 10, 12, 12, 15, 83.
+  - The local runtime reports only wall time, which includes waiting and is
+    not CPU time, so local numbers were not used.
+- **Deployed responses**: `GET /` returned 200 with the expected `h1` and
+  `x-nextjs-cache: HIT`. The stub returned 200 for a JSON object and 400 for
+  a body that is not JSON.
 
 Note on the size limit: the OpenNext overview page states 3 MiB compressed on
 the free plan and 10 MiB on paid. Cloudflare's own limits page, read on
@@ -128,24 +142,38 @@ the free plan and 10 MiB on paid. Cloudflare's own limits page, read on
 changes nothing now. Keep recording the compressed size, as the later briefs
 ask, in case the limit returns.
 
-## Still to measure
-
-Deploying needs a Cloudflare login, which only the owner can grant
-(`pnpm exec wrangler login`). After that:
-
-1. `pnpm deploy` and confirm the `workers.dev` address serves `/` and the
-   stub endpoint.
-2. Record CPU time for both routes in the table above.
-3. Change the status of this record to accepted, or to the fallback.
-
 ## Verdict
 
-**Provisional go.** The bundle is about a third of the stricter size limit,
-and Cache Components works through the adapter. The remaining risk is CPU
-time on `GET /`. It is expected to be low, because the Worker returns stored
-HTML instead of rendering, but it is not measured yet. If either route
-exceeds 10 ms CPU time and there is no simple fix, stop and switch to the
-fallback.
+**Open: the owner decides.** The brief says stop and report if a limit is
+exceeded. The result is between the two cases:
+
+- **Within the limit as Cloudflare enforces it.** The typical request uses
+  about 6 ms. Cloudflare's limits page says a Worker may "infrequently" run
+  over 10 ms, and is cut off (error 1102) only if it does so consistently.
+  Not one of 99 requests was cut off.
+- **But over it often enough to worry.** About one request in eight went over
+  10 ms, and a few went far over (54, 74, 83 ms). The highest ones are
+  probably the first request in a fresh copy of the Worker, which has to load
+  the code. Cloudflare does not say how often is "consistently".
+- **And this is the smallest the site will ever be.** The homepage is one
+  heading. The Worker only returns stored HTML, so most of its time is the
+  adapter's own fixed work, which should not grow much with page size. That
+  is a reasonable guess, not something measured.
+
+Options:
+
+1. **Go on the free plan, with a stop rule.** Re-measure the same way after
+   the full homepage is built (Brief 8) and before the production deploy
+   (Brief 13). If any request is cut off with error 1102, or the median goes
+   above 8 ms, move to option 2.
+2. **Go on Cloudflare Workers Paid.** The same code and setup. Cloudflare's
+   pricing page gives a minimum of $5 a month and a default limit of 30
+   seconds CPU time per request, so this limit stops mattering.
+3. **Switch to the fallback, Vercel Pro**, as below.
+
+Recommendation: option 1. Nothing failed, the typical request is well under
+the limit, and option 2 is a small, code-free step if the re-measurement
+goes the wrong way.
 
 ## Fallback: Vercel Pro
 

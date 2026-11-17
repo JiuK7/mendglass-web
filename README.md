@@ -86,11 +86,16 @@ the smoke test fails, the Playwright report is attached to the run.
 Cloudflare Workers, free plan, through `@opennextjs/cloudflare`. The reasons,
 measurements and fallback are in ADR 004.
 
-| Command        | What it does                                                          |
-| -------------- | --------------------------------------------------------------------- |
-| `pnpm preview` | Builds for Workers and runs the site locally in the Workers runtime   |
-| `pnpm deploy`  | Builds for Workers and deploys to Cloudflare (needs `wrangler login`) |
+| Command           | What it does                                                          |
+| ----------------- | --------------------------------------------------------------------- |
+| `pnpm preview`    | Builds for Workers and runs the site locally in the Workers runtime   |
+| `pnpm run deploy` | Builds for Workers and deploys to Cloudflare (needs `wrangler login`) |
 
 Configuration: `wrangler.jsonc` (the Worker), `open-next.config.ts` (the
 adapter and its cache) and `public/_headers` (cache headers for build files).
 Local Workers values go in `.dev.vars`, which is gitignored.
+
+Use `pnpm run deploy`, not `pnpm deploy`: the short form runs a built-in pnpm
+command instead of this script.
+
+Current address: https://mendglass-web.mendglass-web.workers.dev
