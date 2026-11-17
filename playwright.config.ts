@@ -19,5 +19,9 @@ export default defineConfig({
     command: `pnpm start --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    // A production build refuses to start without SITE_ENV (src/lib/env.ts).
+    // The tests run as a preview, so enquiries go to the test sink. Set here
+    // rather than in CI, so local runs and CI start the server the same way.
+    env: { SITE_ENV: "preview" },
   },
 });

@@ -186,6 +186,100 @@ Move to Workers Paid (option 2) if any request is cut off with error 1102
 (outcome `exceededCpu`), or if the median for any route is above 8 ms. Record
 the re-measurement and the outcome in this section.
 
+### Re-measurement after Brief 5 (17 November 2026)
+
+Brief 5 asks for the CPU time of a valid `POST /api/enquiry` on the deployed
+Worker. This is not one of the two stop-rule checkpoints (Briefs 8 and 13),
+but the same method and thresholds were used.
+
+Deployed from the Brief 5 branch (`feat/enquiry-core`) as version
+`d7d6de88-2a7d-42da-8407-4f181d2cacfd`. It is the first deploy since
+Brief 2, so it also carries Briefs 3 and 4 (fonts, tokens, layout).
+`ENQUIRY_SINK` and `SITE_ENV` were unset, so every enquiry went to the test
+sink and was delivered nowhere. Wrangler printed
+`Total Upload: 5343.00 KiB / gzip: 1136.58 KiB` (Brief 2: 4,690 / 987 KiB).
+
+Method as above: `wrangler tail --format json`, one machine, a new `curl`
+per request, a fraction of a second apart. Every request answered 200, and
+every record had outcome `ok`; none was `exceededCpu`. `wrangler tail`
+dropped many records (it delivered 56 of 90 in run 2), so each run has fewer
+records than requests sent.
+
+- Run 1, 50 valid `POST`s (35 records, sorted): 3, 4, 4, 5 (×9), 6 (×6), 7,
+  7, 9, 9, 11, 11, 12, 13, 15, 16, 17, 116, 134, 139, 225, 247, 331.
+  **Median 6 ms.**
+- Run 2, 45 `GET /` and 45 valid `POST`s, alternating.
+  - `GET /` (27 records): 4, 4, 5 (×4), 6 (×5), 7, 9, 11, 16, 17, 51, 59,
+    62, 129, 134, 141, 148, 167, 178, 228, 230. **Median 11 ms.**
+  - `POST` (29 records): 3, 4, 4, 5, 5, 5, 6 (×4), 7, 7, 9 (×4), 10, 10,
+    10, 13, 16, 17, 50, 68, 133, 144, 154, 244, 245. **Median 9 ms.**
+- Runs 1 and 2 together, `POST` (64 records): **median 8 ms**; 23 over 10 ms
+  (35%); 12 over 50 ms; highest 331 ms.
+- A diagnostic run of 40 `POST`s over one reused connection (11 records
+  arrived): 3, 3, 4, 5, 5, 5, 6, 9, 10, 111, 212.
+
+What it shows:
+
+- **No request was cut off**, so nothing is failing now.
+- **The median is at the 8 ms line**: under it in run 1, over it in run 2
+  for both routes, and exactly on it for `POST` overall.
+- **There is a second group of slow requests, 50 to 331 ms**, much more
+  often than in Brief 2 (whose highest was 83 ms). It affects `GET /` as
+  much as `POST`, and `GET /` does not run the enquiry code. Reusing one
+  connection did not remove it.
+
+#### Comparison with `main` (owner's choice, same day)
+
+To find out whether Brief 5 causes the slow group, `main` (Briefs 1 to 4,
+with the Brief 2 stub endpoint) was deployed and measured, then this branch
+was redeployed and measured straight after, the same way: 60 `GET /` and
+60 `POST`s, alternating.
+
+| Build                                                   | Upload (gzip) | Route   | Records | Median | Over 10 ms | Over 50 ms | Highest |
+| ------------------------------------------------------- | ------------- | ------- | ------- | ------ | ---------- | ---------- | ------- |
+| `main`, version `33d18b4a-f1b0-4461-ae65-2b2d233e68b0`  | 1,097 KiB     | `GET /` | 60      | 7.5 ms | 16 (27%)   | 11         | 364 ms  |
+|                                                         |               | `POST`  | 60      | 8 ms   | 18 (30%)   | 10         | 235 ms  |
+| Brief 5, version `dac3f59c-5c7b-46a8-bc2a-9a9f71cd8694` | 1,137 KiB     | `GET /` | 57      | 8 ms   | 21 (37%)   | 10         | 354 ms  |
+|                                                         |               | `POST`  | 58      | 7.5 ms | 17 (29%)   | 10         | 253 ms  |
+
+Every request answered 200 and every record had outcome `ok`.
+
+- `main`, `GET /`: 4, 4, 4, 5 (×4), 6 (×14), 7 (×9), 8, 8, 8, 9 (×8), 10,
+  10, 10, 13, 13, 13, 15, 20, 61, 70, 91, 95, 96, 98, 128, 128, 131, 138, 364.
+- `main`, `POST` (the stub): 3, 4 (×10), 5 (×5), 6 (×7), 7 (×5), 8 (×5),
+  9 (×7), 10, 10, 11, 11, 11, 12, 13, 13, 16, 42, 52, 55, 91, 106, 107,
+  109, 120, 145, 184, 235.
+- Brief 5, `GET /`: 3, 4, 4, 4, 5 (×8), 6 (×7), 7 (×8), 8 (×6), 9, 10, 10,
+  11, 12 (×4), 13, 14, 14, 14, 15, 17, 90, 104, 120, 129, 138, 145, 149,
+  150, 244, 354.
+- Brief 5, `POST` (a valid enquiry): 4 (×6), 5 (×10), 6 (×8), 7 (×5),
+  8 (×6), 9, 9, 10 (×4), 11, 12, 19, 19, 22, 43, 45, 51, 52, 57, 59, 60,
+  88, 137, 210, 248, 253.
+
+What the comparison shows:
+
+- **Brief 5 does not cause the slow group.** `main` has it too, in the same
+  share and size. Measured back to back, the two builds are within a
+  millisecond of each other on both routes.
+- **A valid enquiry costs about what the stub did.** Median 7.5 ms against
+  8 ms. The real validation adds no measurable CPU time.
+- **The slow group arrived before Brief 5.** It was not seen in Brief 2.
+  The bundle has grown since then (987 to 1,097 KiB compressed on `main`),
+  and a fresh copy of the Worker must load all of it. That is the likely
+  cause, but it is not proven: conditions on Cloudflare's side may also
+  differ from Brief 2's day.
+
+Outcome: **within the stop rule, at its edge.** Brief 5's own run has a
+median of 7.5 ms for a valid enquiry, at or under 8 ms, and no request
+`exceededCpu`. Both builds sit at the 8 ms line on both routes, so the
+Brief 8 re-measurement, with the full homepage, is likely to cross it.
+Whether to wait for Brief 8 or move to Workers Paid earlier is the
+owner's decision.
+
+`workers.dev` was left serving the Brief 5 build (version `dac3f59c`), from
+its unmerged branch. That is acceptable before launch only. From Brief 13
+the live Worker is deployed only from `main`.
+
 ## Fallback: Vercel Pro
 
 Vercel is the host reference/02 was written for, so switching back means

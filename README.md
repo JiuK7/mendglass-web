@@ -24,6 +24,7 @@ Engineering baseline:
 Decisions made during the build are recorded in [`docs/decisions/`](docs/decisions/):
 
 - [001: Stack and rendering](docs/decisions/001-stack-and-rendering.md)
+- [002: Enquiry integration boundary](docs/decisions/002-enquiry-integration-boundary.md)
 - [004: Hosting on Cloudflare Workers](docs/decisions/004-hosting-cloudflare-workers.md)
 
 ## Stack
@@ -59,9 +60,27 @@ Linux filesystem.
 
 ## Environment
 
-No environment variables are read yet. [`.env.example`](.env.example) lists
-variable names and descriptions as they are introduced. Real values live in
-`.env.local` (gitignored) and are never committed.
+Server variables are validated in `src/lib/env.ts`.
+[`.env.example`](.env.example) lists every name with its description. Real
+values live in `.env.local` (gitignored) and are never committed.
+
+| Variable       | Values                                 | Default                                                             |
+| -------------- | -------------------------------------- | ------------------------------------------------------------------- |
+| `SITE_ENV`     | `development`, `preview`, `production` | `development` in `pnpm dev` and unit tests; required in every build |
+| `ENQUIRY_SINK` | `test`, `email`, `n8n`                 | `test`                                                              |
+
+Under `pnpm dev`, with nothing set, the site runs as development and
+enquiries go to the test sink, which accepts them and delivers them nowhere.
+A production build (`pnpm build` then `pnpm start`, `pnpm preview`, or a
+deploy) refuses to start unless `SITE_ENV` is set:
+
+- End-to-end tests: set to `preview` in `playwright.config.ts`.
+- `pnpm preview`: add `SITE_ENV=preview` to `.dev.vars` (gitignored).
+- The `workers.dev` deploy: set to `preview` in `wrangler.jsonc`.
+
+Each other sink needs its own variables. Production (`SITE_ENV=production`)
+refuses to start with the test sink, and any environment refuses to start if
+a variable is missing or wrong. The enquiry boundary is described in ADR 002.
 
 ## Testing
 

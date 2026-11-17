@@ -20,4 +20,13 @@
   "observability": {
     "enabled": true,
   },
+  // Plain (non-secret) variables, applied on every deploy. Wrangler replaces
+  // variables set in the dashboard with these, so this file is the one place
+  // to change them. Secrets are set with `wrangler secret put`, never here.
+  // A built copy refuses to start without SITE_ENV (docs/decisions/002).
+  // The workers.dev address is a preview until Brief 13, which sets
+  // "production" here together with the email sink.
+  "vars": {
+    "SITE_ENV": "preview",
+  },
 }
