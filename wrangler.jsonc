@@ -1,0 +1,23 @@
+// Cloudflare Workers configuration for the OpenNext adapter.
+// See docs/decisions/004-hosting-cloudflare-workers.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mendglass-web",
+  // The Worker that OpenNext generates. Do not change unless the build
+  // output changes.
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-16",
+  // nodejs_compat is required by the adapter. global_fetch_strictly_public
+  // stops server-side fetch from reaching private network addresses.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Build files and public/ are served directly, without running the Worker.
+  // Prerendered pages are stored here too; the Worker reads them.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  // Workers Logs, so CPU time per request can be read in the dashboard.
+  "observability": {
+    "enabled": true,
+  },
+}

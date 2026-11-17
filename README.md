@@ -24,11 +24,14 @@ Engineering baseline:
 Decisions made during the build are recorded in [`docs/decisions/`](docs/decisions/):
 
 - [001: Stack and rendering](docs/decisions/001-stack-and-rendering.md)
+- [004: Hosting on Cloudflare Workers](docs/decisions/004-hosting-cloudflare-workers.md)
 
 ## Stack
 
 Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 4, Vitest
-with React Testing Library, Playwright, ESLint (flat config) and Prettier.
+with React Testing Library, Playwright, ESLint (flat config), Prettier and Zod.
+Hosted on Cloudflare Workers through the OpenNext adapter
+(`@opennextjs/cloudflare`).
 Exact versions are in `package.json` and `pnpm-lock.yaml`; the reasons are in
 ADR 001.
 
@@ -73,6 +76,26 @@ variable names and descriptions as they are introduced. Real values live in
 Run `pnpm build` before `pnpm test:e2e`: the end-to-end tests start the built
 site with `next start`. `pnpm format` rewrites files with Prettier.
 
+Every pull request to `main` runs the same steps in GitHub Actions
+(`.github/workflows/ci.yml`): install with the frozen lockfile, lint,
+typecheck, unit tests, build, then the Playwright smoke test in Chromium. If
+the smoke test fails, the Playwright report is attached to the run.
+
 ## Deployment
 
-_Not set up yet._
+Cloudflare Workers, free plan, through `@opennextjs/cloudflare`. The reasons,
+measurements and fallback are in ADR 004.
+
+| Command           | What it does                                                          |
+| ----------------- | --------------------------------------------------------------------- |
+| `pnpm preview`    | Builds for Workers and runs the site locally in the Workers runtime   |
+| `pnpm run deploy` | Builds for Workers and deploys to Cloudflare (needs `wrangler login`) |
+
+Configuration: `wrangler.jsonc` (the Worker), `open-next.config.ts` (the
+adapter and its cache) and `public/_headers` (cache headers for build files).
+Local Workers values go in `.dev.vars`, which is gitignored.
+
+Use `pnpm run deploy`, not `pnpm deploy`: the short form runs a built-in pnpm
+command instead of this script.
+
+Current address: https://mendglass-web.mendglass-web.workers.dev

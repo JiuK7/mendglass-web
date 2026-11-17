@@ -13,3 +13,7 @@ CLAUDE.md
 
 # Local tool caches that are not part of the repository.
 .impeccable
+
+# Cloudflare / OpenNext build output.
+.open-next
+.wrangler

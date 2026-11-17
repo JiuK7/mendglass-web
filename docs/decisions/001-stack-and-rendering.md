@@ -48,11 +48,8 @@ With Cache Components, a route is prerendered unless it reads request-time
 data, and request-time work must be marked explicitly. That matches the rule
 above, so the default was kept rather than switched off.
 
-Open point: the next step adds the Cloudflare adapter. Whether
-`@opennextjs/cloudflare` supports these two options must be checked against
-its current documentation then. If it does not, they are turned off and this
-record is updated. The scaffold does not depend on them: it has one static
-page.
+Open point, now closed: ADR 004 tested both options through the Cloudflare
+adapter (`@opennextjs/cloudflare`) and they work, so they stay on.
 
 ## Decision 2: versions
 

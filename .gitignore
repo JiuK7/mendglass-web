@@ -157,3 +157,8 @@ next-env.d.ts
 
 # Local tool caches that are not part of the repository.
 /.impeccable/
+
+# Cloudflare / OpenNext build output and local secrets.
+/.open-next/
+/.wrangler/
+.dev.vars*

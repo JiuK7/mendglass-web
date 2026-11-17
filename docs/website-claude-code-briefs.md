@@ -165,6 +165,8 @@ two-sentence plain answer to each question.
 
 ## Brief 2: CI and the Cloudflare go/no-go test
 
+As run, 17 Nov 2026. Results and verdict in ADR 004.
+
 **Owner first:** create a free Cloudflare account. Read the free plan's terms for any restriction on commercial use and record the result.
 
 **Do**
@@ -177,7 +179,7 @@ two-sentence plain answer to each question.
 - Write `docs/decisions/004-hosting-cloudflare-workers.md`: the reason (cost against a small budget), what changes from reference/02, the measurements below, the fallback (Vercel Pro), and why OpenNext not vinext.
 
 **Measure and record in ADR 004**
-- Compressed bundle size from the deploy output, against the 3 MiB free limit.
+- Bundle size, compressed and uncompressed, with the method in ADR 004. The two size limits disagree (see ADR 004's note).
 - CPU time for `GET /` and for the stub `POST`, against the 10 ms free limit. Say how it was measured.
 - Whether `/` is served as a static asset or runs the Worker.
 - Whether the adapter supports `cacheComponents` and `partialPrefetching`, which the scaffold enabled by default. If it does not, turn them off and say so.
@@ -273,7 +275,7 @@ Every response carries a `requestId`. Logs hold only `requestId`, outcome and `h
 - Vitest covers each field's valid and invalid cases, normalisation, every environment branch, and every response class through injected sinks.
 - Searching `src/` finds no Airtable or n8n identifiers.
 - `docs/decisions/002-enquiry-integration-boundary.md` records the boundary, the interim sink and its exit criteria.
-- CPU time for a valid `POST` on the deployed Worker is re-measured and still under the limit.
+- CPU time for a valid `POST` on the deployed Worker is re-measured with the method in ADR 004 and still under the limit.
 
 **Explain it:** why validate on the server; why the honeypot returns success; 503 versus 500; why no personal data in logs; why the sink is an interface.
 **Estimate:** 4 hours.
@@ -333,7 +335,8 @@ Every response carries a `requestId`. Logs hold only `requestId`, outcome and `h
 - No horizontal scroll at 360, 768, 1280 and 1440.
 - Screenshots at 390 and 1440 are in the pull request.
 - No new client components. Every image has alt text or is marked decorative.
-- Bundle size re-checked against the 3 MiB limit.
+- Bundle size re-recorded, compressed and uncompressed, with the method in ADR 004. The two size limits disagree (see ADR 004's note).
+- CPU time re-measured per ADR 004's stop rule: `wrangler tail --format json` on the deployed Worker, at least 40 requests per route, median at or under 8 ms, and no request with outcome `exceededCpu`. Results recorded in ADR 004. If either fails, stop and report: ADR 004 says move to Workers Paid.
 
 **Explain it:** content in TypeScript rather than a CMS; recomposing for mobile rather than shrinking.
 **Estimate:** 7 to 9 hours across both.
@@ -400,6 +403,7 @@ This changes live systems. Every DNS action is the owner's, taken only after the
 - Export or screenshot every existing DNS record for `mendglass.com`: MX, SPF, DKIM, DMARC, any verification records, and the current apex and `www` records.
 - Send and receive a test email and confirm SPF, DKIM and DMARC pass. This is the baseline.
 - **Check the current docs** for attaching a custom domain to a Worker and whether the domain's DNS must be hosted on Cloudflare.
+- Deploy the final build with `pnpm run deploy` (not `pnpm deploy`, which is a built-in pnpm command) and re-measure CPU time per ADR 004's stop rule: `wrangler tail --format json`, at least 40 requests per route, median at or under 8 ms, and no request with outcome `exceededCpu`. Record the results in ADR 004. If it fails, move to Workers Paid before attaching the domain.
 
 **Do**
 - If DNS must move: add the domain to Cloudflare, compare its imported records against the export one by one, fix any difference, and only then change nameservers at the registrar.
@@ -428,7 +432,7 @@ Expanded 16 Nov 2026 to the same level of detail as Phase 1. Nothing here is imp
 - **[Needs copy]** means wording that is not yet approved. Claude Code must not write it. It comes from `claude/website-copy-remaining-pages-draft-v1.md` (called "the copy document" below) once the owner approves it, or from the Website Build chat.
 - If a session starts and a gap is still open, Claude Code stops and reports it. It does not fill the gap.
 
-**If Brief 2 ended in the fallback (Vercel Pro):** read every Cloudflare instruction below as "the host's equivalent", and skip the 3 MiB and 10 ms checks.
+**If Brief 2 ended in the fallback (Vercel Pro):** read every Cloudflare instruction below as "the host's equivalent", and skip the bundle-size and CPU-time checks (the method in ADR 004).
 
 ## Order and dependencies
 
@@ -454,7 +458,7 @@ These apply to Briefs 14 to 22 in `mendglass-web`, on top of `CLAUDE.md`.
 4. **Copy.** Strings marked locked in the copy document must match reference/01 word for word. Strings marked new are used only as approved. Content lives in typed modules under `src/content`.
 5. **No new client components** unless the brief names one.
 6. **Privacy check.** If a brief changes what data the site collects, where it goes, or what is stored in the browser, the Privacy page changes in the same pull request, with owner-approved wording.
-7. **Size check.** Re-record the compressed bundle size against the 3 MiB limit in the pull request.
+7. **Size check.** Re-record the bundle size in the pull request, compressed and uncompressed, with the method in ADR 004. The two size limits disagree (see ADR 004's note).
 8. **Screenshots.** Any pull request that changes what a visitor sees includes screenshots at 390 and 1440 wide.
 
 ---
