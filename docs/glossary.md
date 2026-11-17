@@ -3,6 +3,7 @@
 Plain explanations of technical terms used in reports about this codebase.
 Alphabetical. Terms about this codebase and its tools only.
 
+- **Abort signal**: a message handed to code that is waiting on something slow, telling it to stop; the enquiry route sends one after 8 seconds.
 - **Accessible name**: the name a screen reader announces for a link or button, such as "Mendglass home" for the wordmark link.
 - **Adapter**: a tool that reshapes the Next.js build output so it runs on a particular host, here `@opennextjs/cloudflare`.
 - **ADR (architecture decision record)**: a short document that records one decision and the reasons for it.
@@ -17,21 +18,31 @@ Alphabetical. Terms about this codebase and its tools only.
 - **Corepack**: a tool that ships with Node.js and installs the package manager version a project asks for.
 - **CPU time**: the time a server spends actually computing a response, not counting time spent waiting.
 - **Design token**: a named value, such as a brand colour or a radius, defined once in `src/styles/globals.css` and used everywhere by name.
+- **DTO (data transfer object)**: the fixed shape of data passed from one part of the system to another; here, the `Enquiry` every sink receives.
 - **End-to-end test**: a test in which a real browser opens the site and uses it as a visitor would.
+- **Environment variable**: a setting the host gives the site when it runs, kept outside the code, such as `SITE_ENV`; secrets are passed this way.
 - **Favicon**: the small icon a browser shows in the tab and bookmarks for a site.
 - **Focus ring**: the outline that shows which link or button the keyboard is on.
 - **Font CDN**: a third-party server that hosts fonts for many sites, such as Google Fonts; this site does not use one.
 - **GitHub Actions**: GitHub's service that runs the CI checks, set up in `.github/workflows/`.
+- **Honeypot**: a form field hidden from people; only bots fill it in, so a filled one marks the submission as spam.
+- **HTTP status code**: the three-digit number a server sends with each response, such as 200 (success) or 503 (temporarily unavailable, try again).
+- **Instrumentation hook**: `src/instrumentation.ts`; Next.js runs its `register()` once when a server starts, before it answers any request.
+- **Interface**: in TypeScript, a description of what something must provide without saying how; each sink provides `deliver()` in its own way.
 - **Link component**: Next.js's own link (`next/link`); it fetches the next page in the background so moving between pages is faster, at the cost of a small script.
 - **Lint**: an automatic check that finds likely mistakes and formatting slips in code without running it.
 - **Lockfile**: the file that pins exact package versions (`pnpm-lock.yaml`).
+- **Normalisation**: tidying input into one standard form before it is used, such as trimming spaces and lower-casing an email address.
 - **OFL (SIL Open Font Licence)**: the free licence Instrument Sans uses; it lets us ship the font files if the licence text goes with them.
 - **OpenNext**: the open-source project that makes the Next.js build run on hosts other than Vercel.
 - **pnpm**: the package manager, the tool that downloads the code packages this project depends on.
 - **Preview deployment**: a temporary copy of the site, built from a branch, at its own web address.
 - **Primitive**: a small basic building block, such as the button, that other parts of the site reuse instead of restyling their own.
+- **Request ID**: a random code given to each request and returned in its response, so one request can be found in the logs without logging personal data.
+- **Route handler**: a Next.js `route.ts` file that answers requests to an address with data instead of a page; here, `POST /api/enquiry`.
 - **Scaffold**: the bare starting project that every later step builds on.
 - **Server Component**: a piece of a page that runs only on the server, so its code is never sent to the visitor's browser.
+- **Sink**: where an enquiry is delivered (test, email or n8n); the route only knows the shared interface, so the destination can change without touching it.
 - **Skip link**: a link that is hidden until you press Tab; it is the first thing on the page and lets keyboard users jump past the header to the content.
 - **Static asset**: a ready-made file (image, stylesheet, script) the host sends as it is, without running any code.
 - **Strict mode**: the TypeScript setting that turns on its most thorough checks.
