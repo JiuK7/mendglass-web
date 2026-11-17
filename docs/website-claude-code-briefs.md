@@ -224,6 +224,8 @@ As run, 17 Nov 2026. Results and verdict in ADR 004.
 - None of these files is a client component.
 - Focus is visible on every control; touch targets are at least 44px.
 - No link points to a route that does not exist.
+- Text colour pairings are written down (which text token may sit on which background), and a test checks every allowed pair at 4.5:1 or more. Muted greys either pass on Warm Stone and Mist or are not allowed there. (From the pull request #3 review: `neutral` is 3.58:1 on Warm Stone and 2.76:1 on Mist; `neutral-dark` is 4.31:1 on Mist.)
+- `font-medium` exists in the built CSS, which confirms that clearing the font settings with `--font-*: initial` did not remove Tailwind's font-weight utilities.
 
 **Explain it:** why the layout ships no client JavaScript.
 **Estimate:** 2 hours.
