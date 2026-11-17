@@ -97,35 +97,62 @@ section when the criteria are met.
 `src/lib/env.ts` validates the server environment with Zod
 (reference/02 section 11).
 
-| Variable       | Values                                 | Default       | Needs                                                      |
-| -------------- | -------------------------------------- | ------------- | ---------------------------------------------------------- |
-| `SITE_ENV`     | `development`, `preview`, `production` | `development` |                                                            |
-| `ENQUIRY_SINK` | `test`                                 | `test`        | nothing                                                    |
-|                | `email`                                |               | `RESEND_API_KEY`, `ENQUIRY_EMAIL_FROM`, `ENQUIRY_EMAIL_TO` |
-|                | `n8n`                                  |               | `N8N_WEBHOOK_URL` (https), `N8N_WEBHOOK_SECRET`            |
+| Variable       | Values                                 | Default                                                        | Needs                                                      |
+| -------------- | -------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
+| `SITE_ENV`     | `development`, `preview`, `production` | `development` under `next dev` and tests only; none in a build |                                                            |
+| `ENQUIRY_SINK` | `test`                                 | `test`                                                         | nothing                                                    |
+|                | `email`                                |                                                                | `RESEND_API_KEY`, `ENQUIRY_EMAIL_FROM`, `ENQUIRY_EMAIL_TO` |
+|                | `n8n`                                  |                                                                | `N8N_WEBHOOK_URL` (https), `N8N_WEBHOOK_SECRET`            |
 
 - **Production is only what `SITE_ENV=production` says.** No host variable
   (such as Vercel's or Cloudflare's own) is read, so the code is the same on
   any host. An unknown value, such as `prod`, is refused rather than
   treated as "not production".
+- **Every build must say which environment it is.** `SITE_ENV` defaults to
+  `development` only when `NODE_ENV` is `development` (`next dev`) or `test`
+  (Vitest). `next build` and `next start` set `NODE_ENV=production`, and the
+  bundler writes that value into the built code, so it holds on any host.
+  Any other value, or none, counts as a build too. A build with `SITE_ENV`
+  unset refuses to start. Without this rule, the live site with
+  `SITE_ENV=production` forgotten would default to `development`, allow the
+  test sink, and answer every enquiry "accepted" while delivering none. The
+  rule was added at review, 17 November 2026. `NODE_ENV` never makes the site
+  production; it only decides whether `SITE_ENV` may be left out.
 - **Production refuses to start with `test`**, or with `ENQUIRY_SINK` unset
   (it defaults to `test`). The test sink would accept every enquiry and
   deliver none, which is the one failure a visitor could not see.
+- **Where each copy of the site gets `SITE_ENV`.**
+
+  | Copy                                   | Where it is set                       | Value         |
+  | -------------------------------------- | ------------------------------------- | ------------- |
+  | `pnpm dev`, unit tests                 | not set                               | `development` |
+  | End-to-end tests (`next start`, CI)    | `playwright.config.ts`, `webServer`   | `preview`     |
+  | `pnpm preview` (local Workers runtime) | `.dev.vars`, gitignored, by each user | `preview`     |
+  | `workers.dev` deploy                   | `wrangler.jsonc`, `vars`              | `preview`     |
+  | Live site (Brief 13)                   | `wrangler.jsonc`, `vars`              | `production`  |
+
+  `wrangler.jsonc` is the one place for the deployed Worker's plain
+  variables: Cloudflare's Wrangler configuration page says that variables
+  changed in the dashboard are overridden on the next deploy (read
+  17 November 2026). Secrets such as `RESEND_API_KEY` are set with
+  `wrangler secret put`, never in the file.
+
 - **How "refuses to start" works.** `src/instrumentation.ts` validates the
   environment in `register()`, which Next.js calls once when a server
   instance starts, before it handles any request. If validation fails, the
   instance never becomes ready: every request, pages included, gets a 500,
   and the log names the variable and the problem (never the value). Tested
   on 17 November 2026 with `next start` and with `pnpm preview` (the Workers
-  runtime). The build is not affected, because `register()` does not run
-  during `next build`.
+  runtime), for production with the test sink and for a build with
+  `SITE_ENV` unset. The build is not affected, because `register()` does not
+  run during `next build`.
 - **Checked again on each delivery.** `route.ts` reads the environment when
   it picks the sink, because on Cloudflare the environment is filled in on
   the first request, not when modules load. If it is wrong, the delivery
   fails and the visitor gets the retry answer.
 - **Previews.** Reference/02 section 12 wants previews to use a test webhook
-  or a mock. Until Brief 22 that is the `test` sink: leave `SITE_ENV` unset
-  or `preview`, and `ENQUIRY_SINK` unset or `test`.
+  or a mock. Until Brief 22 that is the `test` sink: set `SITE_ENV=preview`
+  and leave `ENQUIRY_SINK` unset or `test`.
 - **Not built yet.** Choosing `email` (until Brief 6) or `n8n` (until
   Brief 22) passes validation, but every delivery fails with 503. Nothing
   is lost silently.
@@ -195,4 +222,9 @@ which could repeat it. Tests check both.
 
 - Brief 6 adds one file and one `case` in `sinkFor`; Brief 22 the same.
 - The Privacy page (Brief 9) must describe the sink actually in use.
-- Brief 7's form needs approved wording for each field error code.
+- Brief 7's form matches each field error code (`required`, `too-short`,
+  `too-long`, `invalid`) to the per-field validation messages already in the
+  contact page copy draft, rather than asking for new wording.
+- Brief 13 changes `SITE_ENV` in `wrangler.jsonc` from `preview` to
+  `production` when it sets the email sink. Until then the deployed Worker
+  is a preview.

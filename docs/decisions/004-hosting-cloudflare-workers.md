@@ -276,7 +276,9 @@ Brief 8 re-measurement, with the full homepage, is likely to cross it.
 Whether to wait for Brief 8 or move to Workers Paid earlier is the
 owner's decision.
 
-`workers.dev` was left serving the Brief 5 build (version `dac3f59c`).
+`workers.dev` was left serving the Brief 5 build (version `dac3f59c`), from
+its unmerged branch. That is acceptable before launch only. From Brief 13
+the live Worker is deployed only from `main`.
 
 ## Fallback: Vercel Pro
 
