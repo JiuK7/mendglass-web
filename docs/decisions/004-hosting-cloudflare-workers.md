@@ -225,14 +225,58 @@ What it shows:
   for both routes, and exactly on it for `POST` overall.
 - **There is a second group of slow requests, 50 to 331 ms**, much more
   often than in Brief 2 (whose highest was 83 ms). It affects `GET /` as
-  much as `POST`, and `GET /` does not run the enquiry code. A likely cause
-  is a fresh copy of the Worker loading a bigger bundle, but that is a
-  guess: reusing one connection did not remove the slow group, and this
-  run did not compare against a build without Brief 5.
+  much as `POST`, and `GET /` does not run the enquiry code. Reusing one
+  connection did not remove it.
 
-Outcome: **owner decision pending.** The stop rule's median threshold is
-crossed in one run and met exactly overall; the 1102 threshold is not
-crossed.
+#### Comparison with `main` (owner's choice, same day)
+
+To find out whether Brief 5 causes the slow group, `main` (Briefs 1 to 4,
+with the Brief 2 stub endpoint) was deployed and measured, then this branch
+was redeployed and measured straight after, the same way: 60 `GET /` and
+60 `POST`s, alternating.
+
+| Build                                                   | Upload (gzip) | Route   | Records | Median | Over 10 ms | Over 50 ms | Highest |
+| ------------------------------------------------------- | ------------- | ------- | ------- | ------ | ---------- | ---------- | ------- |
+| `main`, version `33d18b4a-f1b0-4461-ae65-2b2d233e68b0`  | 1,097 KiB     | `GET /` | 60      | 7.5 ms | 16 (27%)   | 11         | 364 ms  |
+|                                                         |               | `POST`  | 60      | 8 ms   | 18 (30%)   | 10         | 235 ms  |
+| Brief 5, version `dac3f59c-5c7b-46a8-bc2a-9a9f71cd8694` | 1,137 KiB     | `GET /` | 57      | 8 ms   | 21 (37%)   | 10         | 354 ms  |
+|                                                         |               | `POST`  | 58      | 7.5 ms | 17 (29%)   | 10         | 253 ms  |
+
+Every request answered 200 and every record had outcome `ok`.
+
+- `main`, `GET /`: 4, 4, 4, 5 (×4), 6 (×14), 7 (×9), 8, 8, 8, 9 (×8), 10,
+  10, 10, 13, 13, 13, 15, 20, 61, 70, 91, 95, 96, 98, 128, 128, 131, 138, 364.
+- `main`, `POST` (the stub): 3, 4 (×10), 5 (×5), 6 (×7), 7 (×5), 8 (×5),
+  9 (×7), 10, 10, 11, 11, 11, 12, 13, 13, 16, 42, 52, 55, 91, 106, 107,
+  109, 120, 145, 184, 235.
+- Brief 5, `GET /`: 3, 4, 4, 4, 5 (×8), 6 (×7), 7 (×8), 8 (×6), 9, 10, 10,
+  11, 12 (×4), 13, 14, 14, 14, 15, 17, 90, 104, 120, 129, 138, 145, 149,
+  150, 244, 354.
+- Brief 5, `POST` (a valid enquiry): 4 (×6), 5 (×10), 6 (×8), 7 (×5),
+  8 (×6), 9, 9, 10 (×4), 11, 12, 19, 19, 22, 43, 45, 51, 52, 57, 59, 60,
+  88, 137, 210, 248, 253.
+
+What the comparison shows:
+
+- **Brief 5 does not cause the slow group.** `main` has it too, in the same
+  share and size. Measured back to back, the two builds are within a
+  millisecond of each other on both routes.
+- **A valid enquiry costs about what the stub did.** Median 7.5 ms against
+  8 ms. The real validation adds no measurable CPU time.
+- **The slow group arrived before Brief 5.** It was not seen in Brief 2.
+  The bundle has grown since then (987 to 1,097 KiB compressed on `main`),
+  and a fresh copy of the Worker must load all of it. That is the likely
+  cause, but it is not proven: conditions on Cloudflare's side may also
+  differ from Brief 2's day.
+
+Outcome: **within the stop rule, at its edge.** Brief 5's own run has a
+median of 7.5 ms for a valid enquiry, at or under 8 ms, and no request
+`exceededCpu`. Both builds sit at the 8 ms line on both routes, so the
+Brief 8 re-measurement, with the full homepage, is likely to cross it.
+Whether to wait for Brief 8 or move to Workers Paid earlier is the
+owner's decision.
+
+`workers.dev` was left serving the Brief 5 build (version `dac3f59c`).
 
 ## Fallback: Vercel Pro
 
