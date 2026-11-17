@@ -1,0 +1,15 @@
+.next
+out
+build
+next-env.d.ts
+pnpm-lock.yaml
+playwright-report
+test-results
+
+# Reference documents and briefs are read-only source material.
+docs/reference
+docs/website-claude-code-briefs.md
+CLAUDE.md
+
+# Local tool caches that are not part of the repository.
+.impeccable

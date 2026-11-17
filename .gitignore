@@ -147,3 +147,13 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# mendglass-web
+.DS_Store
+next-env.d.ts
+/playwright-report/
+/test-results/
+/blob-report/
+
+# Local tool caches that are not part of the repository.
+/.impeccable/
