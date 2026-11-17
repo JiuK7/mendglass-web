@@ -257,10 +257,10 @@ stands.
     payments were ever added.
   - (a) no reselling, renting or sharing access to the services, and no
     signing up on a third party's behalf. This does not affect
-    mendglass.com. It does matter for client and concept sites: each client's
-    site should run on that client's own Cloudflare account, or on a paid
-    agreement that allows it. Relevant to Brief 17 (restaurant concept) and
-    to any client work.
+    mendglass.com or the restaurant concept (Brief 17), which are both
+    Mendglass's own sites on Mendglass's own account. It would apply to a
+    client's site hosted on this account. Client sites are planned for a
+    no-code builder instead, so it does not apply now.
   - (c) no getting round usage limits or quotas. The stop rule moves to a
     paid plan rather than working around the CPU limit, which keeps to this.
 - **Developer Platform terms:** Cloudflare "may temporarily limit" requests
