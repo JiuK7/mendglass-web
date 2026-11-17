@@ -48,6 +48,14 @@ describe("POST /api/enquiry", () => {
     expect(await response.json()).toMatchObject({ status: "unavailable" });
   });
 
+  it("fails closed (503) for a production build with SITE_ENV missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_ENV", "");
+    vi.stubEnv("ENQUIRY_SINK", "");
+    const response = await POST(post(valid));
+    expect(response.status).toBe(503);
+  });
+
   it("fails closed (503) for a sink that is not built yet", async () => {
     vi.stubEnv("SITE_ENV", "preview");
     vi.stubEnv("ENQUIRY_SINK", "n8n");

@@ -26,6 +26,23 @@ describe("start-up check", () => {
     expect(() => register()).toThrow(ServerEnvError);
   });
 
+  it("refuses to start a production build with SITE_ENV missing", () => {
+    // next build and next start set NODE_ENV=production.
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_ENV", "");
+    vi.stubEnv("ENQUIRY_SINK", "");
+    expect(() => register()).toThrow(
+      "SITE_ENV is required in a production build",
+    );
+  });
+
+  it("starts a production build that says it is a preview", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_ENV", "preview");
+    vi.stubEnv("ENQUIRY_SINK", "");
+    expect(() => register()).not.toThrow();
+  });
+
   it("refuses to start with a sink whose variables are missing", () => {
     vi.stubEnv("SITE_ENV", "preview");
     vi.stubEnv("ENQUIRY_SINK", "email");

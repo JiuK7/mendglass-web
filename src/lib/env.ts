@@ -40,12 +40,14 @@ const httpsAddress = required.refine(
 
 // Production is only ever production because SITE_ENV says so. A host's own
 // variables (such as one Vercel or Cloudflare sets) are never consulted, so
-// the code reads the same on any host.
-const siteEnv = z
-  .enum(siteEnvironments, {
-    error: `must be one of ${siteEnvironments.join(", ")}`,
-  })
-  .default("development");
+// the code reads the same on any host. SITE_ENV has no default here: see
+// parseServerEnv for when it may be left out.
+const siteEnv = z.enum(siteEnvironments, {
+  error: (issue) =>
+    issue.input === undefined
+      ? "is required in a production build (only next dev and tests may leave it unset)"
+      : `must be one of ${siteEnvironments.join(", ")}`,
+});
 
 const testSinkEnv = z.object({
   SITE_ENV: siteEnv,
@@ -104,14 +106,33 @@ export class ServerEnvError extends Error {
 }
 
 /**
+ * Whether SITE_ENV may be left out and default to `development`: only under
+ * `next dev` (NODE_ENV=development) and Vitest (NODE_ENV=test). `next build`
+ * and `next start` set NODE_ENV=production, so every built copy of the site,
+ * on any host, must say what it is. Anything else, including no NODE_ENV at
+ * all, counts as a production build.
+ *
+ * NODE_ENV only decides whether SITE_ENV is required. It never makes the
+ * site production; only SITE_ENV=production does.
+ */
+function mayDefaultSiteEnv(nodeEnv: string | undefined): boolean {
+  return nodeEnv === "development" || nodeEnv === "test";
+}
+
+/**
  * Validates a set of environment variables. An empty value counts as unset.
- * ENQUIRY_SINK defaults to `test` and SITE_ENV to `development`, so a fresh
- * clone runs with no setup and can never deliver anywhere real.
+ * ENQUIRY_SINK defaults to `test`, so nothing is ever delivered anywhere real
+ * by accident. In `next dev` and tests SITE_ENV defaults to `development`, so
+ * a fresh clone runs with no setup; a production build has no default and
+ * refuses to start without it.
+ *
+ * `nodeEnv` is the build's NODE_ENV. getServerEnv passes the real one.
  *
  * Throws ServerEnvError if anything is missing or wrong.
  */
 export function parseServerEnv(
   source: Record<string, string | undefined>,
+  nodeEnv: string | undefined,
 ): ServerEnv {
   const values: Record<string, string> = {};
   for (const key of knownVariables) {
@@ -121,6 +142,9 @@ export function parseServerEnv(
     }
   }
   values.ENQUIRY_SINK ??= "test";
+  if (mayDefaultSiteEnv(nodeEnv)) {
+    values.SITE_ENV ??= "development";
+  }
 
   const result = serverEnvSchema.safeParse(values);
   if (!result.success) {
@@ -135,5 +159,8 @@ export function parseServerEnv(
 
 /** The current server environment, read from `process.env`. */
 export function getServerEnv(): ServerEnv {
-  return parseServerEnv(process.env);
+  // Written out in full so the bundler can replace process.env.NODE_ENV with
+  // the build's value; a built copy then counts as production even on a host
+  // that does not set NODE_ENV when it runs.
+  return parseServerEnv(process.env, process.env.NODE_ENV);
 }

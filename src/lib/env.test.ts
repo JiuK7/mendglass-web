@@ -15,9 +15,19 @@ const n8nVariables = {
   N8N_WEBHOOK_SECRET: "SECRET_HEADER_VALUE_456",
 };
 
-function failure(source: Record<string, string | undefined>): ServerEnvError {
+type Source = Record<string, string | undefined>;
+
+/** Parses as a test run does (NODE_ENV=test) unless told otherwise. */
+function parse(source: Source, nodeEnv: string | undefined = "test") {
+  return parseServerEnv(source, nodeEnv);
+}
+
+function failure(
+  source: Source,
+  nodeEnv: string | undefined = "test",
+): ServerEnvError {
   try {
-    parseServerEnv(source);
+    parseServerEnv(source, nodeEnv);
   } catch (error) {
     expect(error).toBeInstanceOf(ServerEnvError);
     return error as ServerEnvError;
@@ -25,28 +35,73 @@ function failure(source: Record<string, string | undefined>): ServerEnvError {
   throw new Error("Expected the environment to be refused.");
 }
 
-describe("defaults", () => {
-  it("with nothing set: development and the test sink", () => {
-    expect(parseServerEnv({})).toEqual({
-      SITE_ENV: "development",
-      ENQUIRY_SINK: "test",
-    });
-  });
+const siteEnvRequired = "SITE_ENV is required in a production build";
+
+describe("defaults in next dev and tests", () => {
+  it.each(["development", "test"])(
+    "with nothing set under NODE_ENV=%s: development and the test sink",
+    (nodeEnv) => {
+      expect(parse({}, nodeEnv)).toEqual({
+        SITE_ENV: "development",
+        ENQUIRY_SINK: "test",
+      });
+    },
+  );
 
   it("treats an empty value as unset", () => {
-    expect(parseServerEnv({ SITE_ENV: "", ENQUIRY_SINK: "" })).toEqual({
+    expect(parse({ SITE_ENV: "", ENQUIRY_SINK: "" })).toEqual({
       SITE_ENV: "development",
       ENQUIRY_SINK: "test",
     });
   });
 
   it("ignores variables it does not read", () => {
-    expect(
-      parseServerEnv({ PATH: "/usr/bin", NEXTJS_ENV: "development" }),
-    ).toEqual({
+    expect(parse({ PATH: "/usr/bin", NEXTJS_ENV: "development" })).toEqual({
       SITE_ENV: "development",
       ENQUIRY_SINK: "test",
     });
+  });
+});
+
+describe("a production build must say which environment it is", () => {
+  // The failure this prevents: the live site with SITE_ENV forgotten would
+  // otherwise default to development, allow the test sink, and answer every
+  // enquiry "accepted" while delivering none.
+  it("refuses to start with neither SITE_ENV nor ENQUIRY_SINK set", () => {
+    expect(failure({}, "production").message).toContain(siteEnvRequired);
+  });
+
+  it("refuses SITE_ENV left empty", () => {
+    expect(failure({ SITE_ENV: "" }, "production").message).toContain(
+      siteEnvRequired,
+    );
+  });
+
+  it("refuses SITE_ENV missing even when a real sink is set", () => {
+    expect(failure(emailVariables, "production").message).toContain(
+      siteEnvRequired,
+    );
+  });
+
+  it.each([undefined, "", "staging"])(
+    "treats NODE_ENV=%s as a production build too",
+    (nodeEnv) => {
+      // Called directly: the helpers' default would replace undefined.
+      expect(() => parseServerEnv({}, nodeEnv)).toThrow(siteEnvRequired);
+    },
+  );
+
+  it("starts as a preview with the test sink when SITE_ENV=preview", () => {
+    expect(parse({ SITE_ENV: "preview" }, "production")).toEqual({
+      SITE_ENV: "preview",
+      ENQUIRY_SINK: "test",
+    });
+  });
+
+  it("starts as production with a real sink when SITE_ENV=production", () => {
+    expect(
+      parse({ ...emailVariables, SITE_ENV: "production" }, "production"),
+    ).toEqual({ SITE_ENV: "production", ...emailVariables });
   });
 });
 
@@ -54,9 +109,7 @@ describe("SITE_ENV", () => {
   it.each(["development", "preview"])(
     "allows the test sink in %s",
     (siteEnv) => {
-      expect(
-        parseServerEnv({ SITE_ENV: siteEnv, ENQUIRY_SINK: "test" }),
-      ).toEqual({
+      expect(parse({ SITE_ENV: siteEnv, ENQUIRY_SINK: "test" })).toEqual({
         SITE_ENV: siteEnv,
         ENQUIRY_SINK: "test",
       });
@@ -73,27 +126,31 @@ describe("SITE_ENV", () => {
   );
 
   it("is never inferred from a host's own variables", () => {
-    const env = parseServerEnv({
+    const hostVariables = {
       NODE_ENV: "production",
       VERCEL_ENV: "production",
       CF_PAGES_BRANCH: "main",
       NEXTJS_ENV: "production",
-    });
-    expect(env.SITE_ENV).toBe("development");
+    };
+    expect(parse(hostVariables).SITE_ENV).toBe("development");
+    expect(
+      parse({ ...hostVariables, SITE_ENV: "preview" }, "production").SITE_ENV,
+    ).toBe("preview");
   });
 });
 
 describe("production refuses the test sink", () => {
   it("when ENQUIRY_SINK is test", () => {
     expect(
-      failure({ SITE_ENV: "production", ENQUIRY_SINK: "test" }).message,
+      failure({ SITE_ENV: "production", ENQUIRY_SINK: "test" }, "production")
+        .message,
     ).toContain(
       "ENQUIRY_SINK must be email or n8n when SITE_ENV is production",
     );
   });
 
   it("when ENQUIRY_SINK is unset, because it then defaults to test", () => {
-    expect(failure({ SITE_ENV: "production" }).message).toContain(
+    expect(failure({ SITE_ENV: "production" }, "production").message).toContain(
       "ENQUIRY_SINK must be email or n8n when SITE_ENV is production",
     );
   });
@@ -110,7 +167,7 @@ describe("ENQUIRY_SINK", () => {
   );
 
   it("test needs no other variables", () => {
-    expect(parseServerEnv({ ENQUIRY_SINK: "test" })).toEqual({
+    expect(parse({ ENQUIRY_SINK: "test" })).toEqual({
       SITE_ENV: "development",
       ENQUIRY_SINK: "test",
     });
@@ -119,13 +176,11 @@ describe("ENQUIRY_SINK", () => {
 
 describe("the email sink", () => {
   it("is accepted with all its variables, in development and production", () => {
-    expect(parseServerEnv(emailVariables)).toEqual({
+    expect(parse(emailVariables)).toEqual({
       SITE_ENV: "development",
       ...emailVariables,
     });
-    expect(
-      parseServerEnv({ ...emailVariables, SITE_ENV: "production" }),
-    ).toEqual({
+    expect(parse({ ...emailVariables, SITE_ENV: "production" })).toEqual({
       SITE_ENV: "production",
       ...emailVariables,
     });
@@ -150,7 +205,7 @@ describe("the email sink", () => {
   });
 
   it("drops the n8n variables it does not use", () => {
-    const env = parseServerEnv({
+    const env = parse({
       ...emailVariables,
       N8N_WEBHOOK_URL: "https://x.example.com",
     });
@@ -160,16 +215,14 @@ describe("the email sink", () => {
 
 describe("the n8n sink", () => {
   it("is accepted with all its variables, in development and production", () => {
-    expect(parseServerEnv(n8nVariables)).toEqual({
+    expect(parse(n8nVariables)).toEqual({
       SITE_ENV: "development",
       ...n8nVariables,
     });
-    expect(parseServerEnv({ ...n8nVariables, SITE_ENV: "production" })).toEqual(
-      {
-        SITE_ENV: "production",
-        ...n8nVariables,
-      },
-    );
+    expect(parse({ ...n8nVariables, SITE_ENV: "production" })).toEqual({
+      SITE_ENV: "production",
+      ...n8nVariables,
+    });
   });
 
   it.each(["N8N_WEBHOOK_URL", "N8N_WEBHOOK_SECRET"])("needs %s", (name) => {
@@ -228,5 +281,12 @@ describe("getServerEnv", () => {
     vi.stubEnv("SITE_ENV", "production");
     vi.stubEnv("ENQUIRY_SINK", "test");
     expect(() => getServerEnv()).toThrow(ServerEnvError);
+  });
+
+  it("reads NODE_ENV: a production build needs SITE_ENV", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_ENV", "");
+    vi.stubEnv("ENQUIRY_SINK", "");
+    expect(() => getServerEnv()).toThrow(siteEnvRequired);
   });
 });

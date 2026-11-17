@@ -23,25 +23,33 @@ afterEach(() => {
 
 describe("sinkFor", () => {
   it("returns the test sink for ENQUIRY_SINK=test", () => {
-    expect(sinkFor(parseServerEnv({ ENQUIRY_SINK: "test" }))).toBe(testSink);
+    expect(sinkFor(parseServerEnv({ ENQUIRY_SINK: "test" }, "test"))).toBe(
+      testSink,
+    );
   });
 
   it("throws for email until Brief 6 builds it", () => {
-    const env = parseServerEnv({
-      ENQUIRY_SINK: "email",
-      RESEND_API_KEY: "key",
-      ENQUIRY_EMAIL_FROM: "from@example.com",
-      ENQUIRY_EMAIL_TO: "to@example.com",
-    });
+    const env = parseServerEnv(
+      {
+        ENQUIRY_SINK: "email",
+        RESEND_API_KEY: "key",
+        ENQUIRY_EMAIL_FROM: "from@example.com",
+        ENQUIRY_EMAIL_TO: "to@example.com",
+      },
+      "test",
+    );
     expect(() => sinkFor(env)).toThrow("not built yet");
   });
 
   it("throws for n8n until Brief 22 builds it", () => {
-    const env = parseServerEnv({
-      ENQUIRY_SINK: "n8n",
-      N8N_WEBHOOK_URL: "https://workflows.example.com/hook",
-      N8N_WEBHOOK_SECRET: "secret",
-    });
+    const env = parseServerEnv(
+      {
+        ENQUIRY_SINK: "n8n",
+        N8N_WEBHOOK_URL: "https://workflows.example.com/hook",
+        N8N_WEBHOOK_SECRET: "secret",
+      },
+      "test",
+    );
     expect(() => sinkFor(env)).toThrow("not built yet");
   });
 });
