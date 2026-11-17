@@ -231,8 +231,44 @@ whether per-pull-request previews are worth adding.
 
 ## Free plan terms
 
-Brief 2 asks the owner to read the free plan's terms for any restriction on
-commercial use. That result belongs here and is not recorded yet.
+Read on 17 November 2026 by Claude Code, from the agreement linked at
+cloudflare.com/terms. To be confirmed by the owner before merge. This is a
+reading of the text, not legal advice.
+
+**Result: no restriction on commercial use found.** This is the point on
+which Vercel's free plan failed, so it decides whether the verdict above
+stands.
+
+- **Governing agreement:** the Self-Serve Subscription Agreement ("Last
+  Updated September 12, 2025") covers self-serve and free accounts. Workers
+  also falls under the Developer Platform section of the Service-Specific
+  Terms (last updated 28 September 2026).
+- **Who may use it:** the agreement binds "you, or the Entity you represent"
+  and is written for businesses as well as individuals. Nothing limits use to
+  personal, hobby or non-commercial purposes, in the agreement or in the
+  Developer Platform terms.
+- **Free services (section 2.6):** stay free until a trial ends, a paid plan
+  starts, or Cloudflare ends the free version "at its sole discretion".
+  Cloudflare accepts no liability for harm from free services. Meaning: the
+  free plan can be withdrawn, and option 2 (Workers Paid) is the way out.
+- **Restrictions that touch this site (section 2.2.1):**
+  - (h) no collecting card details on a site that uses free services. The
+    enquiry form takes no payment, so this does not apply. It would if
+    payments were ever added.
+  - (a) no reselling, renting or sharing access to the services, and no
+    signing up on a third party's behalf. This does not affect
+    mendglass.com. It does matter for client and concept sites: each client's
+    site should run on that client's own Cloudflare account, or on a paid
+    agreement that allows it. Relevant to Brief 17 (restaurant concept) and
+    to any client work.
+  - (c) no getting round usage limits or quotas. The stop rule moves to a
+    paid plan rather than working around the CPU limit, which keeps to this.
+- **Developer Platform terms:** Cloudflare "may temporarily limit" requests
+  if they burden its network; no volumetric attacks, phishing or deceptive
+  subdomain names. None of these affect this site.
+
+Effect on the verdict: none. The free plan's terms allow a commercial studio
+site, so the verdict stands.
 
 ## Sources (read 17 November 2026)
 
@@ -245,3 +281,6 @@ commercial use. That result belongs here and is not recorded yet.
 - developers.cloudflare.com/workers/configuration/previews/
 - developers.cloudflare.com/workers/ci-cd/builds/ and its limits page
 - blog.cloudflare.com/vinext and the vinext repository README
+- cloudflare.com/terms (Self-Serve Subscription Agreement)
+- cloudflare.com/service-specific-terms-developer-platform/
+- developers.cloudflare.com/workers/platform/pricing/
