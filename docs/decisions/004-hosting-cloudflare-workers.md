@@ -186,6 +186,54 @@ Move to Workers Paid (option 2) if any request is cut off with error 1102
 (outcome `exceededCpu`), or if the median for any route is above 8 ms. Record
 the re-measurement and the outcome in this section.
 
+### Re-measurement after Brief 5 (17 November 2026)
+
+Brief 5 asks for the CPU time of a valid `POST /api/enquiry` on the deployed
+Worker. This is not one of the two stop-rule checkpoints (Briefs 8 and 13),
+but the same method and thresholds were used.
+
+Deployed from the Brief 5 branch (`feat/enquiry-core`) as version
+`d7d6de88-2a7d-42da-8407-4f181d2cacfd`. It is the first deploy since
+Brief 2, so it also carries Briefs 3 and 4 (fonts, tokens, layout).
+`ENQUIRY_SINK` and `SITE_ENV` were unset, so every enquiry went to the test
+sink and was delivered nowhere. Wrangler printed
+`Total Upload: 5343.00 KiB / gzip: 1136.58 KiB` (Brief 2: 4,690 / 987 KiB).
+
+Method as above: `wrangler tail --format json`, one machine, a new `curl`
+per request, a fraction of a second apart. Every request answered 200, and
+every record had outcome `ok`; none was `exceededCpu`. `wrangler tail`
+dropped many records (it delivered 56 of 90 in run 2), so each run has fewer
+records than requests sent.
+
+- Run 1, 50 valid `POST`s (35 records, sorted): 3, 4, 4, 5 (×9), 6 (×6), 7,
+  7, 9, 9, 11, 11, 12, 13, 15, 16, 17, 116, 134, 139, 225, 247, 331.
+  **Median 6 ms.**
+- Run 2, 45 `GET /` and 45 valid `POST`s, alternating.
+  - `GET /` (27 records): 4, 4, 5 (×4), 6 (×5), 7, 9, 11, 16, 17, 51, 59,
+    62, 129, 134, 141, 148, 167, 178, 228, 230. **Median 11 ms.**
+  - `POST` (29 records): 3, 4, 4, 5, 5, 5, 6 (×4), 7, 7, 9 (×4), 10, 10,
+    10, 13, 16, 17, 50, 68, 133, 144, 154, 244, 245. **Median 9 ms.**
+- Runs 1 and 2 together, `POST` (64 records): **median 8 ms**; 23 over 10 ms
+  (35%); 12 over 50 ms; highest 331 ms.
+- A diagnostic run of 40 `POST`s over one reused connection (11 records
+  arrived): 3, 3, 4, 5, 5, 5, 6, 9, 10, 111, 212.
+
+What it shows:
+
+- **No request was cut off**, so nothing is failing now.
+- **The median is at the 8 ms line**: under it in run 1, over it in run 2
+  for both routes, and exactly on it for `POST` overall.
+- **There is a second group of slow requests, 50 to 331 ms**, much more
+  often than in Brief 2 (whose highest was 83 ms). It affects `GET /` as
+  much as `POST`, and `GET /` does not run the enquiry code. A likely cause
+  is a fresh copy of the Worker loading a bigger bundle, but that is a
+  guess: reusing one connection did not remove the slow group, and this
+  run did not compare against a build without Brief 5.
+
+Outcome: **owner decision pending.** The stop rule's median threshold is
+crossed in one run and met exactly overall; the 1102 threshold is not
+crossed.
+
 ## Fallback: Vercel Pro
 
 Vercel is the host reference/02 was written for, so switching back means
