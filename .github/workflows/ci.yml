@@ -49,10 +49,11 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: End-to-end smoke test (Chromium)
+        id: e2e
         run: pnpm test:e2e
 
       - name: Upload Playwright report
-        if: failure()
+        if: failure() && steps.e2e.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
