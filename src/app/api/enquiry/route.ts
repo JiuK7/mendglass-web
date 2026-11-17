@@ -1,22 +1,15 @@
-import { z } from "zod";
+import { getServerEnv } from "@/lib/env";
+import { sinkFor, type EnquirySink } from "@/lib/integrations/enquiry-sink";
+import { createEnquiryHandler } from "./handler";
 
-// Temporary stub for the hosting test. Brief 5 replaces it with the real
-// enquiry schema, validation and delivery. It accepts any JSON object and
-// never logs or stores what it receives.
-const stubBody = z.record(z.string(), z.unknown());
+// The sink is chosen from the environment on each delivery, not when this
+// file loads. On Cloudflare the environment is filled in when the first
+// request arrives, after modules may already have loaded. If the environment
+// is wrong, delivery fails and the visitor is asked to try again.
+const sinkFromEnvironment: EnquirySink = {
+  deliver(enquiry, meta, signal) {
+    return sinkFor(getServerEnv()).deliver(enquiry, meta, signal);
+  },
+};
 
-export async function POST(request: Request): Promise<Response> {
-  let json: unknown;
-  try {
-    json = await request.json();
-  } catch {
-    return Response.json({ ok: false }, { status: 400 });
-  }
-
-  const result = stubBody.safeParse(json);
-  if (!result.success) {
-    return Response.json({ ok: false }, { status: 400 });
-  }
-
-  return Response.json({ ok: true }, { status: 200 });
-}
+export const POST = createEnquiryHandler(sinkFromEnvironment);

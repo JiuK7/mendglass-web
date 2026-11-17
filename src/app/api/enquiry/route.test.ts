@@ -1,32 +1,59 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-function post(body: string): Request {
+// route.ts only wires the handler to the sink the environment names. The
+// response rules themselves are tested in handler.test.ts.
+
+const valid = {
+  name: "Ada Lovelace",
+  email: "ada@example.com",
+  businessName: "The Analytical Kitchen",
+  helpType: "not-sure",
+  description: "We would like to talk about a website.",
+};
+
+function post(body: unknown): Request {
   return new Request("http://localhost/api/enquiry", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body,
+    body: JSON.stringify(body),
   });
 }
 
-describe("POST /api/enquiry (stub)", () => {
-  it("returns 200 for a JSON object", async () => {
-    const response = await POST(post(JSON.stringify({ name: "Test" })));
+beforeEach(() => {
+  vi.spyOn(console, "info").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+describe("POST /api/enquiry", () => {
+  it("accepts a valid enquiry through the test sink when nothing is configured", async () => {
+    vi.stubEnv("SITE_ENV", "");
+    vi.stubEnv("ENQUIRY_SINK", "");
+    const response = await POST(post(valid));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(await response.json()).toMatchObject({ status: "accepted" });
   });
 
-  it("returns 400 for a body that is not JSON", async () => {
-    const response = await POST(post("not json"));
-
-    expect(response.status).toBe(400);
+  it("fails closed (503) if the environment is invalid at request time", async () => {
+    vi.stubEnv("SITE_ENV", "production");
+    vi.stubEnv("ENQUIRY_SINK", "test");
+    const response = await POST(post(valid));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ status: "unavailable" });
   });
 
-  it("returns 400 for JSON that is not an object", async () => {
-    const response = await POST(post(JSON.stringify(["a", "b"])));
-
-    expect(response.status).toBe(400);
+  it("fails closed (503) for a sink that is not built yet", async () => {
+    vi.stubEnv("SITE_ENV", "preview");
+    vi.stubEnv("ENQUIRY_SINK", "n8n");
+    vi.stubEnv("N8N_WEBHOOK_URL", "https://workflows.example.com/hook/test");
+    vi.stubEnv("N8N_WEBHOOK_SECRET", "secret");
+    const response = await POST(post(valid));
+    expect(response.status).toBe(503);
   });
 });
