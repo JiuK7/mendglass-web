@@ -145,7 +145,8 @@ describe("the request to Resend", () => {
   });
 
   it("says so when no website was given", async () => {
-    const { websiteUrl: _none, ...withoutWebsite } = enquiry;
+    const withoutWebsite: Enquiry = { ...enquiry };
+    delete withoutWebsite.websiteUrl;
     await deliver(withoutWebsite);
     expect(sentBody().text).toContain("\nWebsite: none given\n");
   });
