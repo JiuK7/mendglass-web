@@ -1,8 +1,6 @@
 # 004: Hosting on Cloudflare Workers
 
-Status: **proposed, verdict open**, 17 November 2026. Deployed and measured;
-CPU time is close to the free limit, so the verdict is the owner's (see
-"Verdict").
+Status: **accepted: go on the free plan, with a stop rule**, 17 November 2026. Chosen by the owner after the measurements below (see "Verdict").
 
 ## Context
 
@@ -144,8 +142,9 @@ ask, in case the limit returns.
 
 ## Verdict
 
-**Open: the owner decides.** The brief says stop and report if a limit is
-exceeded. The result is between the two cases:
+**Go on the free plan, with a stop rule** (option 1 below), chosen by the
+owner on 17 November 2026. The brief says stop and report if a limit is
+exceeded. The result was between the two cases:
 
 - **Within the limit as Cloudflare enforces it.** The typical request uses
   about 6 ms. Cloudflare's limits page says a Worker may "infrequently" run
@@ -171,9 +170,21 @@ Options:
    seconds CPU time per request, so this limit stops mattering.
 3. **Switch to the fallback, Vercel Pro**, as below.
 
-Recommendation: option 1. Nothing failed, the typical request is well under
-the limit, and option 2 is a small, code-free step if the re-measurement
-goes the wrong way.
+Recommended and chosen: option 1. Nothing failed, the typical request is well
+under the limit, and option 2 is a small, code-free step if the
+re-measurement goes the wrong way.
+
+### Stop rule
+
+Measure CPU time again, the same way (`wrangler tail --format json`, at least
+40 requests per route, recorded here):
+
+- after the full homepage is built (Brief 8), and
+- before the production deploy (Brief 13).
+
+Move to Workers Paid (option 2) if any request is cut off with error 1102
+(outcome `exceededCpu`), or if the median for any route is above 8 ms. Record
+the re-measurement and the outcome in this section.
 
 ## Fallback: Vercel Pro
 
