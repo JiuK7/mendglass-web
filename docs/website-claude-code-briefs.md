@@ -308,6 +308,7 @@ Every response carries a `requestId`. Logs hold only `requestId`, outcome and `h
 - Visible labels; `helpType` as a radio group or select; client checks reuse the same Zod schema.
 - Submit disabled while pending. An `aria-live` region announces status. Errors linked with `aria-describedby`. Focus moves to the error summary on failure and to the success message on success.
 - Success replaces the form. A 503 shows a retry message (and the direct email only if D6 approved one).
+- **Restore (D1):** header "Discuss your website" to `/contact`; footer "Contact".
 
 **Done when**
 - RTL covers pending, errors as text, success and failure.
@@ -350,6 +351,7 @@ Every response carries a `requestId`. Logs hold only `requestId`, outcome and `h
 **Do**
 - `/privacy` with the approved copy: enquiry fields and purpose; lawful basis; Cloudflare hosting and its logs; Resend, including transfer outside the UK; the Google Workspace mailbox; Airtable (manual entry); no analytics and no non-essential cookies or storage; retention; rights; privacy contact; the right to complain to the ICO.
 - A Playwright test visits all three routes, submits the form, and asserts no cookies and no localStorage or sessionStorage entries.
+- **Restore (D1):** footer "Privacy".
 
 **Done when**
 - Every processor on the page exists in code or config, and every processor in code or config is on the page.

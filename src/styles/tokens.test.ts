@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "vitest";
+import { textPairings } from "./text-pairings";
 
 const root = process.cwd();
 const css = readFileSync(join(root, "src/styles/globals.css"), "utf8");
@@ -48,6 +49,31 @@ describe("colour tokens", () => {
         4.5,
       );
     }
+  });
+});
+
+describe("text colour pairings (text-pairings.ts)", () => {
+  const pairs = Object.entries(textPairings).flatMap(([background, texts]) =>
+    texts.map((text) => [text, background] as const),
+  );
+
+  test.each(pairs)("%s text on %s is at least 4.5:1", (text, background) => {
+    expect(
+      contrast(token(`color-${text}`), token(`color-${background}`)),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // From the pull request #3 review: these muted greys fail 4.5:1, so they
+  // must not be allowed on these backgrounds.
+  test.each([
+    ["neutral", "warm-stone"],
+    ["neutral", "mist"],
+    ["neutral-dark", "mist"],
+  ] as const)("%s text is not allowed on %s", (text, background) => {
+    expect(
+      contrast(token(`color-${text}`), token(`color-${background}`)),
+    ).toBeLessThan(4.5);
+    expect(textPairings[background]).not.toContain(text);
   });
 });
 
