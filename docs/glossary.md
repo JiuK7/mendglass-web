@@ -7,6 +7,7 @@ Alphabetical. Terms about this codebase and its tools only.
 - **Accessible name**: the name a screen reader announces for a link or button, such as "Mendglass home" for the wordmark link.
 - **Adapter**: a tool that reshapes the Next.js build output so it runs on a particular host, here `@opennextjs/cloudflare`.
 - **ADR (architecture decision record)**: a short document that records one decision and the reasons for it.
+- **API key**: a secret code that lets the site use a service such as Resend; whoever holds it can act as the site, so it is never committed.
 - **App Router**: the Next.js way of building a site in which each folder under `src/app` becomes a page address.
 - **Branch protection**: a GitHub setting that blocks merging into `main` until required checks pass.
 - **Bundle**: the packed-up server code uploaded to the host when the site is deployed.
@@ -18,21 +19,27 @@ Alphabetical. Terms about this codebase and its tools only.
 - **Corepack**: a tool that ships with Node.js and installs the package manager version a project asks for.
 - **CPU time**: the time a server spends actually computing a response, not counting time spent waiting.
 - **Design token**: a named value, such as a brand colour or a radius, defined once in `src/styles/globals.css` and used everywhere by name.
+- **DKIM**: a signature added to each email that lets the receiving server check it really came from the sending domain and was not changed.
+- **DNS**: the internet's address book; a domain's DNS records say which servers handle its website and its email, and prove who may send mail for it.
 - **Dry run**: a rehearsal of a command that shows what it would do without doing it; `wrangler deploy --dry-run` builds the upload but sends nothing.
 - **DTO (data transfer object)**: the fixed shape of data passed from one part of the system to another; here, the `Enquiry` every sink receives.
 - **End-to-end test**: a test in which a real browser opens the site and uses it as a visitor would.
 - **Environment variable**: a setting the host gives the site when it runs, kept outside the code, such as `SITE_ENV`; secrets are passed this way.
 - **Favicon**: the small icon a browser shows in the tab and bookmarks for a site.
+- **fetch**: the built-in way for server or browser code to make a web request; the email sink uses it to call Resend.
 - **Focus ring**: the outline that shows which link or button the keyboard is on.
 - **Font CDN**: a third-party server that hosts fonts for many sites, such as Google Fonts; this site does not use one.
 - **GitHub Actions**: GitHub's service that runs the CI checks, set up in `.github/workflows/`.
+- **Header injection**: an attack that hides a line break in a value so that the rest of it becomes an extra email header, such as a hidden extra recipient.
 - **Honeypot**: a form field hidden from people; only bots fill it in, so a filled one marks the submission as spam.
+- **HTTP API**: a service you use by sending web requests to an address, as the site does with Resend, instead of through a mail server connection.
 - **HTTP status code**: the three-digit number a server sends with each response, such as 200 (success) or 503 (temporarily unavailable, try again).
 - **Instrumentation hook**: `src/instrumentation.ts`; Next.js runs its `register()` once when a server starts, before it answers any request.
 - **Interface**: in TypeScript, a description of what something must provide without saying how; each sink provides `deliver()` in its own way.
 - **Link component**: Next.js's own link (`next/link`); it fetches the next page in the background so moving between pages is faster, at the cost of a small script.
 - **Lint**: an automatic check that finds likely mistakes and formatting slips in code without running it.
 - **Lockfile**: the file that pins exact package versions (`pnpm-lock.yaml`).
+- **Mock**: a stand-in for something real, used in tests; a mocked `fetch` records the request and returns a made-up answer without using the network.
 - **NODE_ENV**: a standard setting that says how the code is being run: `development` under `next dev`, `test` in unit tests, `production` in a build; Next.js writes it into the built code.
 - **Normalisation**: tidying input into one standard form before it is used, such as trimming spaces and lower-casing an email address.
 - **OFL (SIL Open Font Licence)**: the free licence Instrument Sans uses; it lets us ship the font files if the licence text goes with them.
@@ -41,19 +48,26 @@ Alphabetical. Terms about this codebase and its tools only.
 - **Preview deployment**: a temporary copy of the site, built from a branch, at its own web address.
 - **Primitive**: a small basic building block, such as the button, that other parts of the site reuse instead of restyling their own.
 - **Production build**: the optimised copy of the site that `next build` makes; it is what runs under `next start`, `pnpm preview` and on Cloudflare, even when that copy serves a preview.
+- **Reply-To**: an email header that says where replies should go; on enquiry emails it is the enquirer, so pressing Reply answers them.
 - **Request ID**: a random code given to each request and returned in its response, so one request can be found in the logs without logging personal data.
+- **Resend**: the email-sending service the email sink uses to deliver each enquiry to the studio inbox.
 - **Route handler**: a Next.js `route.ts` file that answers requests to an address with data instead of a page; here, `POST /api/enquiry`.
 - **Scaffold**: the bare starting project that every later step builds on.
+- **SDK (software development kit)**: a ready-made code library a service offers for using it; this site calls Resend directly with `fetch` instead.
 - **Server Component**: a piece of a page that runs only on the server, so its code is never sent to the visitor's browser.
 - **Sink**: where an enquiry is delivered (test, email or n8n); the route only knows the shared interface, so the destination can change without touching it.
 - **Skip link**: a link that is hidden until you press Tab; it is the first thing on the page and lets keyboard users jump past the header to the content.
+- **SPF**: a DNS record listing which servers may send email for a domain, so receiving servers can reject forgeries.
 - **Static asset**: a ready-made file (image, stylesheet, script) the host sends as it is, without running any code.
 - **Strict mode**: the TypeScript setting that turns on its most thorough checks.
 - **Stub**: a temporary stand-in for a piece of code, kept minimal until the real version is built.
 - **Touch target**: the area of a link or button that responds to a tap or click; on this site at least 44 by 44 pixels.
 - **Typecheck**: an automatic check that finds places where code uses the wrong kind of value, without running it.
 - **Unit test**: a fast test that checks one small piece of code on its own, without opening a browser.
+- **User-Agent**: a request header that names the program making the request; Resend refuses requests without one.
 - **Worker**: a small program that runs on Cloudflare's servers for each request; here, the site's server code.
+- **Worker secret**: a setting stored encrypted by Cloudflare and given to the Worker when it runs, set with `wrangler secret put`, never written in a file.
 - **workers.dev**: a free Cloudflare web address for a Worker, used before a custom domain is attached.
 - **Wrangler**: Cloudflare's command-line tool for running and deploying Workers.
+- **Wrangler environment**: a named copy of the Worker's settings in `wrangler.jsonc`, such as `production`, deployed with `--env` as a separate Worker.
 - **Zod**: a library that checks incoming data has the expected shape before the code uses it.

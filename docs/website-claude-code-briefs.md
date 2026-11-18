@@ -412,6 +412,7 @@ This changes live systems. Every DNS action is the owner's, taken only after the
 **Do**
 - If DNS must move: add the domain to Cloudflare, compare its imported records against the export one by one, fix any difference, and only then change nameservers at the registrar.
 - Set production secrets and `SITE_ENV=production`, `ENQUIRY_SINK=email`.
+- Use a Wrangler environment for production (an `env.production` block in `wrangler.jsonc` with `SITE_ENV=production` and `ENQUIRY_SINK=email`), rather than editing the top-level `preview` value. Production deploys use `pnpm run deploy -- --env production`, only from `main`. The real enquiry from the owner's phone (already in Done when) is the final check that the email sink is live.
 - Attach `mendglass.com`; redirect `www` to it.
 - If the free plan allows one, add a rate-limiting rule on `/api/enquiry`.
 

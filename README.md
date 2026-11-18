@@ -82,6 +82,13 @@ Each other sink needs its own variables. Production (`SITE_ENV=production`)
 refuses to start with the test sink, and any environment refuses to start if
 a variable is missing or wrong. The enquiry boundary is described in ADR 002.
 
+The `email` sink sends each enquiry as one plain-text email through Resend's
+HTTP API, with Reply-To set to the enquirer. It needs `RESEND_API_KEY`,
+`ENQUIRY_EMAIL_FROM` and `ENQUIRY_EMAIL_TO`. To send a real one from your
+machine, put `ENQUIRY_SINK=email` and those three in `.env.local` (for
+`pnpm dev`) or `.dev.vars` (for `pnpm preview`); both files are gitignored.
+On the deployed Worker the key is a secret, set with `wrangler secret put`.
+
 ## Testing
 
 | Command          | What it does                                              |

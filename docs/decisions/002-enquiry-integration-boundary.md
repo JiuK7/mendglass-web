@@ -1,8 +1,9 @@
 # 002: Enquiry integration boundary
 
-Status: **proposed** in Brief 5, 17 November 2026. Accepted when the owner
-merges the pull request that adds it. Brief 6 adds the email sink; Brief 22
-records when the interim sink's exit criteria are met.
+Status: **accepted**. Proposed in Brief 5 and accepted when its pull request
+was merged, 17 November 2026. Brief 6 (17 November 2026) adds the email sink
+and the sending region (section 2); Brief 22 records when the interim sink's
+exit criteria are met.
 
 ## Context
 
@@ -40,7 +41,7 @@ EnquiryForm (Brief 7)
       5. sink.deliver(), 8-second limit
   → EnquirySink, chosen by ENQUIRY_SINK    src/lib/integrations/enquiry-sink.ts
       test   delivers nowhere              src/lib/integrations/test-sink.ts
-      email  Resend → studio inbox         Brief 6 (the interim sink)
+      email  Resend → studio inbox         src/lib/integrations/email-sink.ts
       n8n    n8n webhook → Airtable        Brief 22
 ```
 
@@ -75,6 +76,56 @@ to the enquirer. Entry into Airtable is done by hand, outside the website.
 
 Why email: it needs one sending-only API key and no workflow, it keeps the
 enquiry out of any extra system, and switching to n8n later is one variable.
+
+**How it sends** (Brief 6, `src/lib/integrations/email-sink.ts`). One
+`POST https://api.resend.com/emails` with `fetch`; no Resend SDK. The body
+has five fields and no others:
+
+| Field      | Value                                                                |
+| ---------- | -------------------------------------------------------------------- |
+| `from`     | `ENQUIRY_EMAIL_FROM`, an address on the sending subdomain            |
+| `to`       | `ENQUIRY_EMAIL_TO`, the studio inbox                                 |
+| `reply_to` | The enquirer's email address, bare, with CR and LF stripped          |
+| `subject`  | `Website enquiry — {businessName}`, with CR and LF stripped          |
+| `text`     | Every field, then `submittedAt` and `requestId`; plain text, no HTML |
+
+- **Header injection.** Validation already refuses line breaks in the
+  one-line fields. The sink strips CR and LF from the subject and Reply-To
+  anyway, so it never depends on that. It sends no `cc`, `bcc` or custom
+  `headers`, so nothing the visitor types can add a recipient.
+- **User-Agent.** Resend refuses any request without a `User-Agent` header
+  with a 403 (error code 1010) before it reaches the API (Resend API
+  introduction, read 17 November 2026). The sink sends `mendglass-web`, and
+  nothing about the visitor.
+- **Failure.** Any answer outside 2xx, or a failed request, rejects. The
+  error names the HTTP status only; Resend's reply is never read into it,
+  because it could repeat what the visitor typed. The handler logs neither.
+- **Time limit.** The handler's abort signal goes to `fetch`, so at 8 seconds
+  the request to Resend is cancelled and the visitor gets 503. An email that
+  Resend accepted just before the cancel may still arrive, so a visitor who
+  then retries can produce a duplicate. That is preferred to losing one.
+- **No idempotency key.** Resend supports one, but each retry by a visitor
+  is a new request with a new `requestId`, so it would not prevent that
+  duplicate. The site never retries by itself.
+
+**Sending region.** The sending subdomain is `send.mendglass.com`, added in
+Resend in the EU region, Ireland (`eu-west-1`), on 17 November 2026. It
+verifies once the domain's DNS moves. Resend's "Choosing a Region" page (read
+17 November 2026) says the region controls where emails are routed and sent
+from, not where data is stored: account data, including email metadata,
+logs and API records, is kept in the United States whatever the region. So:
+
+- the Privacy page (Brief 9) still describes a transfer outside the UK for
+  Resend, as that brief already says;
+- the API address is the same for every region, so the code has no region
+  setting.
+
+**The key** is not created yet. It will be a Resend API key with
+`sending_access` permission (it can only send email), restricted to the
+sending domain. It lives only as a Worker secret
+(`wrangler secret put RESEND_API_KEY`, with `--env production` once Brief 13
+adds that environment) and in gitignored local files (`.env.local`,
+`.dev.vars`).
 
 ### 3. Exit criteria for the interim sink
 
@@ -129,13 +180,24 @@ section when the criteria are met.
   | End-to-end tests (`next start`, CI)    | `playwright.config.ts`, `webServer`   | `preview`     |
   | `pnpm preview` (local Workers runtime) | `.dev.vars`, gitignored, by each user | `preview`     |
   | `workers.dev` deploy                   | `wrangler.jsonc`, `vars`              | `preview`     |
-  | Live site (Brief 13)                   | `wrangler.jsonc`, `vars`              | `production`  |
+  | Live site (Brief 13)                   | `wrangler.jsonc`, `env.production`    | `production`  |
 
   `wrangler.jsonc` is the one place for the deployed Worker's plain
   variables: Cloudflare's Wrangler configuration page says that variables
   changed in the dashboard are overridden on the next deploy (read
   17 November 2026). Secrets such as `RESEND_API_KEY` are set with
   `wrangler secret put`, never in the file.
+
+  The live site gets its own Wrangler environment (Brief 13, owner's
+  decision 17 November 2026): an `env.production` block with
+  `SITE_ENV=production` and `ENQUIRY_SINK=email`, deployed with
+  `pnpm run deploy -- --env production`, only from `main`. The top-level
+  `preview` value is left as it is. Cloudflare's Environments page (read
+  17 November 2026) says an environment deploys as a separate Worker named
+  `<name>-<environment>` (here `mendglass-web-production`), that `vars` are
+  not inherited from the top level and must be repeated in the block, and
+  that commands take `--env` to act on it, so its secrets are set with
+  `wrangler secret put <NAME> --env production`.
 
 - **How "refuses to start" works.** `src/instrumentation.ts` validates the
   environment in `register()`, which Next.js calls once when a server
@@ -153,9 +215,9 @@ section when the criteria are met.
 - **Previews.** Reference/02 section 12 wants previews to use a test webhook
   or a mock. Until Brief 22 that is the `test` sink: set `SITE_ENV=preview`
   and leave `ENQUIRY_SINK` unset or `test`.
-- **Not built yet.** Choosing `email` (until Brief 6) or `n8n` (until
-  Brief 22) passes validation, but every delivery fails with 503. Nothing
-  is lost silently.
+- **Not built yet.** Choosing `n8n` (until Brief 22) passes validation,
+  but every delivery fails with 503. Nothing is lost silently. The `email`
+  sink is built (Brief 6).
 
 ### 5. Public responses
 
@@ -220,11 +282,13 @@ which could repeat it. Tests check both.
 
 ## Consequences
 
-- Brief 6 adds one file and one `case` in `sinkFor`; Brief 22 the same.
+- Brief 6 added one file and one `case` in `sinkFor`; Brief 22 does the
+  same.
 - The Privacy page (Brief 9) must describe the sink actually in use.
 - Brief 7's form matches each field error code (`required`, `too-short`,
   `too-long`, `invalid`) to the per-field validation messages already in the
   contact page copy draft, rather than asking for new wording.
-- Brief 13 changes `SITE_ENV` in `wrangler.jsonc` from `preview` to
-  `production` when it sets the email sink. Until then the deployed Worker
-  is a preview.
+- Brief 13 adds the `env.production` block in `wrangler.jsonc` with
+  `SITE_ENV=production` and `ENQUIRY_SINK=email`, and sets the production
+  secrets with `--env production`. The top-level `workers.dev` Worker stays
+  a preview.
